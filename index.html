@@ -180,9 +180,9 @@
   <div class="error" id="error">Please enter valid, positive numbers.</div>
 
   <div class="results">
+    <div class="row"><span>Loan Amount</span><span id="loanAmountDisplay">₱0.00</span></div>
     <div class="row"><span>Total Interest (flat)</span><span id="totalInterest">₱0.00</span></div>
     <div class="row"><span>Service Charge</span><span id="serviceAmt">₱0.00</span></div>
-    <div class="row"><span>Monthly Payment</span><span id="monthly">₱0.00</span></div>
     <div class="row total"><span>Total Repayable</span><span id="total">₱0.00</span></div>
   </div>
 
@@ -256,7 +256,7 @@
   const serviceHintEl = document.getElementById('serviceHint');
   const totalInterestEl = document.getElementById('totalInterest');
   const serviceAmtEl = document.getElementById('serviceAmt');
-  const monthlyEl = document.getElementById('monthly');
+  const loanAmountDisplayEl = document.getElementById('loanAmountDisplay');
   const totalEl = document.getElementById('total');
   const errorEl = document.getElementById('error');
   const scheduleBodyEl = document.getElementById('scheduleBody');
@@ -363,7 +363,7 @@
     if (isNaN(P) || isNaN(months) || isNaN(ratePct) || isNaN(servicePct)
         || P <= 0 || months <= 0 || ratePct < 0 || servicePct < 0) {
       errorEl.style.display = 'block';
-      totalInterestEl.textContent = serviceAmtEl.textContent = monthlyEl.textContent = totalEl.textContent = '₱0.00';
+      totalInterestEl.textContent = serviceAmtEl.textContent = totalEl.textContent = loanAmountDisplayEl.textContent = '₱0.00';
       clearSchedule();
       return;
     }
@@ -377,12 +377,12 @@
     // Flat-rate interest: charged each month on ORIGINAL principal, for the full term
     const totalInterest = P * monthlyRateFrac * months;
     const serviceAmt = P * (servicePct / 100);
-    const total = P + totalInterest + serviceAmt;
+    const total = P + totalInterest;
     const monthlyPayment = total / months;
 
+    loanAmountDisplayEl.textContent = fmt(P);
     totalInterestEl.textContent = fmt(totalInterest);
     serviceAmtEl.textContent = fmt(serviceAmt);
-    monthlyEl.textContent = fmt(monthlyPayment);
     totalEl.textContent = fmt(total);
 
     // Schedule uses integer month count; non-integer terms round up for display purposes
