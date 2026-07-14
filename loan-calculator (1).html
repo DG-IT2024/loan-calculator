@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Coop Loan Calculator</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: #f4f5f7;
+    margin: 0;
+    padding: 24px;
+    color: #1a1a1a;
+  }
+  .card {
+    max-width: 640px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subtitle { font-size: 12px; color: #777; margin: 0 0 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 4px; color: #444; }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    background: #fff;
+    font-family: inherit;
+  }
+  input:focus, select:focus { outline: none; border-color: #2563eb; }
+  input[readonly] {
+    background: #f0f0f0;
+    color: #888;
+    cursor: not-allowed;
+  }
+  .rate-row { display: flex; gap: 10px; flex: 1; }
+  .rate-row > div { flex: 1; }
+  .field-with-edit { display: flex; align-items: stretch; gap: 8px; }
+  .field-with-edit > input { flex: 1; }
+  .edit-icon-btn {
+    flex-shrink: 0;
+    width: 40px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 15px;
+    color: #555;
+  }
+  .edit-icon-btn:hover { background: #f0f4ff; border-color: #2563eb; color: #2563eb; }
+  .edit-icon-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .basis-toggle button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .hint { font-size: 11px; color: #888; margin-top: 4px; }
+  .basis-toggle {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .basis-toggle button {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 12px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #555;
+  }
+  .basis-toggle button.active {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+  }
+  .results {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f0f4ff;
+    border-radius: 8px;
+  }
+  .results .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+  .results .row.total { font-weight: 700; font-size: 16px; border-top: 1px solid #d5ddf5; margin-top: 6px; padding-top: 10px; }
+  .note {
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: #777;
+    line-height: 1.5;
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .error { color: #c0392b; font-size: 13px; margin-top: 8px; display: none; }
+  .schedule-wrap {
+    margin-top: 20px;
+  }
+  .schedule-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 8px;
+  }
+  .schedule-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+  }
+  .schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .schedule-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f0f4ff;
+    color: #333;
+    text-align: right;
+    padding: 8px 10px;
+    font-weight: 600;
+    border-bottom: 1px solid #d5ddf5;
+    z-index: 1;
+  }
+  .schedule-table thead th:first-child { text-align: left; }
+  .schedule-table td {
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+  }
+  .schedule-table td:first-child { text-align: left; color: #555; }
+  .schedule-table tbody tr:last-child td { font-weight: 600; border-bottom: none; }
+  .schedule-table tbody tr:nth-child(even) { background: #fafbff; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Coop Loan Calculator</h1>
+  <p class="subtitle">Flat-rate calculation — based on OMB-MIN Y2K Multi-Purpose Cooperative loan types</p>
+
+  <label for="loanType">Loan Type</label>
+  <select id="loanType"></select>
+
+  <label for="amount">Loan Amount (₱)</label>
+  <input type="number" id="amount" value="100000" min="0" step="100">
+
+  <label for="term">Loan Term (months)</label>
+  <input type="number" id="term" value="12" min="1" step="1">
+
+  <label>Interest Rate</label>
+  <div class="field-with-edit">
+    <div class="rate-row">
+      <div>
+        <input type="number" id="rate" value="6" min="0" step="0.01" readonly>
+      </div>
+      <div>
+        <div class="basis-toggle" id="basisToggle">
+          <button type="button" id="basisMonth" disabled>per month</button>
+          <button type="button" id="basisAnnum" disabled>per annum</button>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="edit-icon-btn" id="editRateBtn" title="Edit interest rate" aria-label="Edit interest rate">✎</button>
+  </div>
+  <div class="hint" id="rateHint">Auto-filled from loan type. Click ✎ to override.</div>
+
+  <label for="service">Service Charge (%, one-time on principal)</label>
+  <div class="field-with-edit">
+    <input type="number" id="service" value="1" min="0" step="0.01" readonly>
+    <button type="button" class="edit-icon-btn" id="editServiceBtn" title="Edit service charge" aria-label="Edit service charge">✎</button>
+  </div>
+  <div class="hint" id="serviceHint">Auto-filled from loan type. Click ✎ to override.</div>
+
+  <div class="error" id="error">Please enter valid, positive numbers.</div>
+
+  <div class="results">
+    <div class="row"><span>Total Interest (flat)</span><span id="totalInterest">₱0.00</span></div>
+    <div class="row"><span>Service Charge</span><span id="serviceAmt">₱0.00</span></div>
+    <div class="row"><span>Monthly Payment</span><span id="monthly">₱0.00</span></div>
+    <div class="row total"><span>Total Repayable</span><span id="total">₱0.00</span></div>
+  </div>
+
+  <div class="schedule-wrap">
+    <div class="schedule-header">Monthly Payment Schedule</div>
+    <div class="schedule-scroll">
+      <table class="schedule-table" id="scheduleTable">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Principal</th>
+            <th>Interest</th>
+            <th>Payment</th>
+            <th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="note">
+    This uses <strong>flat-rate</strong> interest: rate × principal × term, spread evenly across all months.
+    Interest does <strong>not</strong> decline as you pay down principal — this matches how the coop's ledger
+    actually calculates charges (confirmed against a real subsidiary ledger, where monthly interest stayed
+    constant even as the balance dropped). This is not the same as a diminishing-balance/amortizing loan,
+    and the effective annual rate is higher than the stated flat rate implies. The schedule below reflects
+    this: principal is repaid in equal installments and "Balance" is the remaining principal only — it does
+    not represent an amortizing payoff amount, since interest here doesn't compound or recalculate on balance.
+  </div>
+</div>
+
+<script>
+  // Data from OMB-MIN Y2K Multi-Purpose Cooperative, Jan-Dec 2024 table.
+  // rate: numeric value; basis: 'month' or 'annum'; service: numeric % (one-time on principal)
+  const loanTypes = [
+    { name: "Multi-Purpose Loan",        rate: 6,   basis: "annum", service: 1 },
+    { name: "Regular Loan",              rate: 2,   basis: "month", service: 0.5 },
+    { name: "13th Month Loan",           rate: 2,   basis: "month", service: 1 },
+    { name: "PERA Loan",                 rate: 2,   basis: "month", service: 0.5 },
+    { name: "Amelioration Loan",         rate: 2,   basis: "month", service: 1 },
+    { name: "Stock Loan",                rate: 1,   basis: "month", service: 0.5 },
+    { name: "RATA Loan",                 rate: 2,   basis: "month", service: 0.5 },
+    { name: "RSA Loan",                  rate: 2,   basis: "month", service: 0.5 },
+    { name: "BCA Loan",                  rate: 2,   basis: "month", service: 0.5 },
+    { name: "Appliance Loan",            rate: 0,   basis: "month", service: 0 },
+    { name: "ERA Loan",                  rate: 1,   basis: "month", service: 1 },
+    { name: "EIA Loan",                  rate: 0,   basis: "month", service: 1 },
+    { name: "Midyear Economic Assistance", rate: 2, basis: "month", service: 1 },
+    { name: "EDA Loan",                  rate: 2,   basis: "month", service: 1 },
+    { name: "Mid Year Bonus",            rate: 2,   basis: "month", service: 1 },
+    { name: "SWA Loan",                  rate: 2,   basis: "month", service: 0.5 },
+    { name: "Salary Loan",               rate: 2,   basis: "month", service: 0.5 },
+    { name: "PBB Loan",                  rate: 0,   basis: "month", service: 1 },
+    { name: "SEIA Loan",                 rate: 0,   basis: "month", service: 1 },
+    { name: "Emergency Loan",            rate: 2,   basis: "month", service: 0.5 },
+    { name: "COLA Loan",                 rate: 2,   basis: "month", service: 0.5 },
+    { name: "December Benefit",          rate: 2,   basis: "month", service: 1 },
+  ];
+
+  const loanTypeEl = document.getElementById('loanType');
+  const amountEl = document.getElementById('amount');
+  const termEl = document.getElementById('term');
+  const rateEl = document.getElementById('rate');
+  const serviceEl = document.getElementById('service');
+  const basisMonthBtn = document.getElementById('basisMonth');
+  const basisAnnumBtn = document.getElementById('basisAnnum');
+  const editRateBtn = document.getElementById('editRateBtn');
+  const editServiceBtn = document.getElementById('editServiceBtn');
+  const rateHintEl = document.getElementById('rateHint');
+  const serviceHintEl = document.getElementById('serviceHint');
+  const totalInterestEl = document.getElementById('totalInterest');
+  const serviceAmtEl = document.getElementById('serviceAmt');
+  const monthlyEl = document.getElementById('monthly');
+  const totalEl = document.getElementById('total');
+  const errorEl = document.getElementById('error');
+  const scheduleBodyEl = document.getElementById('scheduleBody');
+
+  let basis = 'annum'; // current selected basis for the rate field
+  let rateUnlocked = false;
+  let serviceUnlocked = false;
+
+  function setBasis(newBasis) {
+    basis = newBasis;
+    basisMonthBtn.classList.toggle('active', basis === 'month');
+    basisAnnumBtn.classList.toggle('active', basis === 'annum');
+    calculate();
+  }
+  basisMonthBtn.addEventListener('click', () => { if (rateUnlocked) setBasis('month'); });
+  basisAnnumBtn.addEventListener('click', () => { if (rateUnlocked) setBasis('annum'); });
+
+  function setRateLocked(locked) {
+    rateUnlocked = !locked;
+    rateEl.readOnly = locked;
+    basisMonthBtn.disabled = locked;
+    basisAnnumBtn.disabled = locked;
+    editRateBtn.classList.toggle('active', !locked);
+    editRateBtn.textContent = locked ? '✎' : '🔒';
+    editRateBtn.title = locked ? 'Edit interest rate' : 'Lock interest rate';
+    rateHintEl.textContent = locked
+      ? 'Auto-filled from loan type. Click ✎ to override.'
+      : 'Editing enabled — click 🔒 to re-lock and restore loan type default.';
+  }
+
+  function setServiceLocked(locked) {
+    serviceUnlocked = !locked;
+    serviceEl.readOnly = locked;
+    editServiceBtn.classList.toggle('active', !locked);
+    editServiceBtn.textContent = locked ? '✎' : '🔒';
+    editServiceBtn.title = locked ? 'Edit service charge' : 'Lock service charge';
+    serviceHintEl.textContent = locked
+      ? 'Auto-filled from loan type. Click ✎ to override.'
+      : 'Editing enabled — click 🔒 to re-lock and restore loan type default.';
+  }
+
+  editRateBtn.addEventListener('click', () => setRateLocked(rateUnlocked));
+  editServiceBtn.addEventListener('click', () => setServiceLocked(serviceUnlocked));
+
+  // Populate loan type dropdown
+  loanTypes.forEach((lt, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = lt.name;
+    loanTypeEl.appendChild(opt);
+  });
+
+  function applyLoanTypeDefaults() {
+    const lt = loanTypes[loanTypeEl.value];
+    rateEl.value = lt.rate;
+    serviceEl.value = lt.service;
+    setRateLocked(true);
+    setServiceLocked(true);
+    setBasis(lt.basis); // setBasis triggers calculate()
+  }
+
+  loanTypeEl.addEventListener('change', applyLoanTypeDefaults);
+
+  function fmt(n) {
+    return '₱' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtPlain(n) {
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderSchedule(P, months, monthlyInterest, monthlyPrincipal, monthlyPaymentAmt) {
+    scheduleBodyEl.innerHTML = '';
+    let balance = P;
+
+    for (let m = 1; m <= months; m++) {
+      const isLast = m === months;
+      // Last month absorbs rounding so principal exactly reaches zero
+      const principalThisMonth = isLast ? balance : monthlyPrincipal;
+      balance = Math.max(0, balance - principalThisMonth);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${m}</td>
+        <td>₱${fmtPlain(principalThisMonth)}</td>
+        <td>₱${fmtPlain(monthlyInterest)}</td>
+        <td>₱${fmtPlain(principalThisMonth + monthlyInterest)}</td>
+        <td>₱${fmtPlain(balance)}</td>
+      `;
+      scheduleBodyEl.appendChild(tr);
+    }
+  }
+
+  function clearSchedule() {
+    scheduleBodyEl.innerHTML = '';
+  }
+
+  function calculate() {
+    const P = parseFloat(amountEl.value);
+    const months = parseFloat(termEl.value);
+    const ratePct = parseFloat(rateEl.value);
+    const servicePct = parseFloat(serviceEl.value);
+
+    if (isNaN(P) || isNaN(months) || isNaN(ratePct) || isNaN(servicePct)
+        || P <= 0 || months <= 0 || ratePct < 0 || servicePct < 0) {
+      errorEl.style.display = 'block';
+      totalInterestEl.textContent = serviceAmtEl.textContent = monthlyEl.textContent = totalEl.textContent = '₱0.00';
+      clearSchedule();
+      return;
+    }
+    errorEl.style.display = 'none';
+
+    // Convert rate to a monthly flat rate depending on basis
+    const monthlyRateFrac = basis === 'annum'
+      ? (ratePct / 100) / 12
+      : (ratePct / 100);
+
+    // Flat-rate interest: charged each month on ORIGINAL principal, for the full term
+    const totalInterest = P * monthlyRateFrac * months;
+    const serviceAmt = P * (servicePct / 100);
+    const total = P + totalInterest + serviceAmt;
+    const monthlyPayment = total / months;
+
+    totalInterestEl.textContent = fmt(totalInterest);
+    serviceAmtEl.textContent = fmt(serviceAmt);
+    monthlyEl.textContent = fmt(monthlyPayment);
+    totalEl.textContent = fmt(total);
+
+    // Schedule uses integer month count; non-integer terms round up for display purposes
+    const wholeMonths = Math.max(1, Math.round(months));
+    const monthlyInterestAmt = totalInterest / wholeMonths;
+    const monthlyPrincipalAmt = P / wholeMonths;
+    renderSchedule(P, wholeMonths, monthlyInterestAmt, monthlyPrincipalAmt, monthlyPayment);
+  }
+
+  [amountEl, termEl, rateEl, serviceEl].forEach(el => el.addEventListener('input', calculate));
+
+  // Initialize with first loan type's defaults
+  applyLoanTypeDefaults();
+</script>
+
+</body>
+</html>
